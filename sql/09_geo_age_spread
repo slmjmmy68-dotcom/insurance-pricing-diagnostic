@@ -1,0 +1,68 @@
+-- ==========================================
+-- GEO x AGE DRIVER STRENGTH
+-- ==========================================
+
+WITH geo_age_stats AS (
+    SELECT
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT
+            t.county,
+            f.age_band,
+            AVG(f.model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium f
+        JOIN dim_territory t
+            ON f.territory_code = t.territory_code
+        WHERE f.stable_pricing_flag = 1
+        GROUP BY t.county, f.age_band
+    )
+)
+
+SELECT
+    'Geo x Age' AS driver,
+    max_ratio,
+    min_ratio,
+    spread
+FROM geo_age_stats;
+
+/*
+| Driver       | Spread    |
+| ------------ | --------- |
+| Tenure       | 0.052     |
+| Age          | 0.162     |
+| Geography    | 0.171     |
+| Age × Tenure | 0.305     |
+| Geo × Age    | **0.354** |
+
+Geo × Age is now the largest driver.
+
+Let’s compare everything to Geo × Age (the largest):
+ Age
+0.162 / 0.354 ≈ 0.46
+→ Age explains ~46% of the largest dispersion.
+
+ Geography
+0.171 / 0.354 ≈ 0.48
+→ Geography explains ~48%.
+
+ Age × Tenure
+0.305 / 0.354 ≈ 0.86
+→ Lifecycle interaction is ~86% as strong.
+
+ Tenure
+0.052 / 0.354 ≈ 0.15
+→ Weak standalone driver at ~15%
+
+The strongest pricing divergence in the portfolio occurs when:
+Age and Geography interact.
+
+That means:
+Certain age groups in certain counties are dramatically diverging 
+from model indication.
+
+The strongest observed pricing deviation occurs at the intersection 
+of age and geography, indicating that regional underwriting behavior
+ materially amplifies demographic pricing divergence.
+*/

@@ -1,0 +1,182 @@
+# Import the Premiums, Territories and Definitions CSV files using pands
+import pandas as pd
+premiums = pd.read_csv("../data/raw/cgr-premiums-table.csv")
+territories = pd.read_csv("../data/raw/territory-definitions-table.csv")
+definitions = pd.read_csv("../data/raw/cgr-definitions-table.csv")
+
+# Renaming Columns to something user-friendly
+premiums = premiums.rename(columns={
+    "territory": "territory_code",
+    "birthdate": "birth_date",
+    "ypc": "years_prior_coverage",
+    "current_premium": "current_premium",
+    "indicated_premium":"indicated_premium",
+    "selected_premium":"selected_premium",
+    "underlying_premium":"underlying_premium",
+    "fixed_expenses":"fixed_expenses",
+    "underlying_total_premium": "underlying_total_premium",
+    "cgr_factor":"combined_grade_rating_factor",
+    "cgr": "combined_grade_rating"
+})
+definitions = definitions.rename(columns={
+    "cgr": "combined_grade_rating",
+    "aa": "annual_average_premium",
+    "bb": "base_premium",
+    "cc": "cost_of_capital",
+    "va":"value_of_asset",
+    "dd":"direct_written_premium",
+    "hh":"homeownership",
+    "ss":"ss",
+})
+territories = territories.rename(columns={
+    "territory": "territory_code"
+})
+
+# Evaluated functional dependency within territory dataset. Determined that zipcode, county, and area were uniquely determined
+#  by territory_code, while town was not. Reconstructed dimension table to enforce 1-row-per-territory grain to ensure correct
+#  fact-to-dimension joins 'by dropping the town column'
+dim_territory = (
+    territories
+    .drop(columns=["town"])
+    .drop_duplicates(subset=["territory_code"])
+    .reset_index(drop=True)
+)
+
+# Convert birthday to datetime so it can be used to calculate birthday
+premiums["birth_date"] = pd.to_datetime(premiums["birth_date"])
+
+# Calculate the birthday using the "birth_date" column and storing it in a new, Age column
+from datetime import datetime
+current_year = datetime.now().year
+premiums["age"] = current_year - premiums["birth_date"].dt.year
+
+# The Age values seen over 100 are likely legacy records or placeholder values so they will be excluded by filtering
+premiums = premiums[premiums["age"] <= 100]
+
+# Explicitly create a unique identifier for the premiums table as it is only implicitly unique
+premiums = premiums.reset_index(drop=True)
+premiums["policy_id"] = premiums.index + 1
+
+
+# The derived metrics below were defined to answer the following business questions:
+"""
+1 pricing_ratio_model = selected / indicated
+
+    Are underwriters following the model?
+    Are they systematically discounting?
+    Is risk-based pricing being respected?
+
+2 renewal_ratio = selected / current
+
+    Are premiums increasing?
+    Are certain territories getting heavier renewal increases?
+
+3 indicated_to_current_ratio = indicated / current
+
+    Is the model suggesting rate increases?
+    Are we underpriced historically?
+
+4 model_deviation = selected - indicated
+
+    Are we seeing dispersion from the model?
+
+5 renewal_change
+
+    Is there significant change on renewal?
+"""
+premiums["model_pricing_ratio"] = premiums["selected_premium"] / premiums["indicated_premium"]
+premiums["renewal_pricing_ratio"] = premiums["selected_premium"] / premiums["current_premium"]
+premiums["indicated_to_current_ratio"] = premiums["indicated_premium"] / premiums["current_premium"]
+premiums["model_deviation"] = premiums["selected_premium"] - premiums["indicated_premium"]
+premiums["renewal_change"] = premiums["selected_premium"] - premiums["current_premium"]
+
+# Create Age bands for segmentation
+age_bins = [0, 25, 35, 50, 65, 100]
+age_labels = ["18-25", "26-35", "36-50", "51-65", "65+"]
+premiums["age_band"] = pd.cut(
+    premiums["age"],
+    bins=age_bins,
+    labels=age_labels
+)
+
+# Create Tenure band for Segmentation. -0.1 is used as the initial value to account for 0
+tenure_bins = [-0.1, 1, 3, 5]
+tenure_labels = ["0-1", "2-3", "4-5"]
+
+premiums["tenure_band"] = pd.cut(
+    premiums["years_prior_coverage"],
+    bins=tenure_bins,
+    labels=tenure_labels
+)
+
+# Create Valid Model Flag to isolate policies where indicated is reasonably sized
+premiums["valid_model_flag"] = premiums["indicated_premium"] > 10
+
+# Minimum volume thresshold for model_pricing_ratio for territories where the policy count is greater than 50
+territory_summary = premiums[premiums["valid_model_flag"]] \
+    .groupby("territory_code") \
+    .agg(
+        avg_ratio=("model_pricing_ratio", "mean"),
+        policy_count=("policy_id", "count")
+    )
+filtered = territory_summary[territory_summary["policy_count"] >= 50]
+
+# Create a stability flag for the indicated_to_current ratio column to ignore extreme outliers and protect against tiny denominators
+premiums["stable_indicated_ratio_flag"] = (
+    (premiums["indicated_to_current_ratio"] > 0.25) &
+    (premiums["indicated_to_current_ratio"] < 3)
+)
+premiums["min_premium_flag"] = premiums["current_premium"] >= 25
+premiums["stable_pricing_flag"] = (
+    premiums["stable_indicated_ratio_flag"] &
+    premiums["min_premium_flag"]
+)
+
+# Validated referential integrity and restricted the dimension to active keys in the fact table to ensure clean joins and prevent orphan reference data.
+dim_rating_definition = definitions[
+    definitions["combined_grade_rating"].isin(
+        premiums["combined_grade_rating"]
+    )
+].reset_index(drop=True)
+
+# Before pushing to SQLite, we explicitly subset the fact table to enforce discipline.
+# Additional rating mechanics fields (fixed_expenses & underlying_total_premium) were retained in staging but 
+# excluded from the reporting layer to maintain lean analytical grain and align with project objectives.
+
+fact_columns = [
+    "policy_id",
+    "territory_code",
+    "combined_grade_rating",
+    "gender",
+    "age",
+    "age_band",
+    "tenure_band",
+    "current_premium",
+    "indicated_premium",
+    "selected_premium",
+    "model_pricing_ratio",
+    "renewal_pricing_ratio",
+    "indicated_to_current_ratio",
+    "model_deviation",
+    "renewal_change",
+    "valid_model_flag",
+    "stable_indicated_ratio_flag",
+    "min_premium_flag",
+    "stable_pricing_flag"
+]
+fact_premium = premiums[fact_columns].copy()
+
+# Create the Database File to load into SQLite for advanced queries 
+import sqlite3
+# Create database file inside your project directory
+conn = sqlite3.connect("../data/processed_to_load/insurance_warehouse.db")
+# Drop tables if they exist (clean rebuild pattern)
+conn.execute("DROP TABLE IF EXISTS fact_premium")
+conn.execute("DROP TABLE IF EXISTS dim_territory")
+conn.execute("DROP TABLE IF EXISTS dim_rating_definition")
+# Push tables
+premiums.to_sql("fact_premium", conn, index=False)
+dim_territory.to_sql("dim_territory", conn, index=False)
+dim_rating_definition.to_sql("dim_rating_definition", conn, index=False)
+conn.commit()
+conn.close()

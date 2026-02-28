@@ -1,0 +1,50 @@
+-- ==========================================
+-- REPORTING TABLE: CALCULATE GEOGRAPHY DRIVER STRENGTH
+-- ==========================================
+
+/*
+Calculate Geographic spread:
+max(avg_model_ratio by county) − min(avg_model_ratio by county)
+*/
+
+DROP TABLE IF EXISTS report_geo_driver_strength;
+
+CREATE TABLE report_geo_driver_strength AS
+
+WITH geo_stats AS (
+    SELECT
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT
+            t.county,
+            AVG(f.model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium f
+        JOIN dim_territory t
+            ON f.territory_code = t.territory_code
+        WHERE f.stable_pricing_flag = 1
+        GROUP BY t.county
+    )
+)
+
+SELECT
+    'Geography' AS driver,
+    max_ratio,
+    min_ratio,
+    spread
+FROM geo_stats;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT * FROM report_geo_driver_strength;
+------------------------------------------------------------------------------------*/
+
+/*
+
+Age spread: 0.162143
+Geography spread: 0.170814
+Age × Tenure spread: 0.3048
+
+Geography and age are roughly equally influential in pricing adherence.
+*/

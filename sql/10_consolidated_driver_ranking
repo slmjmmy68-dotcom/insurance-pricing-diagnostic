@@ -1,0 +1,62 @@
+-- ==========================================
+-- FINAL CONSOLIDATED DRIVER RANKING
+-- ==========================================
+
+/*
+Why hardcode the spreads:
+    They’re deterministic outputs
+    This is a reporting layer
+    SQLite doesn’t support full dynamic window CTE easily without repetition
+*/
+
+DROP TABLE IF EXISTS report_driver_ranking;
+
+CREATE TABLE report_driver_ranking AS
+
+WITH driver_spreads AS (
+
+    -- Age
+    SELECT 'Age' AS driver, 0.162143469846881 AS spread
+    UNION ALL
+    SELECT 'Tenure', 0.0521077539354213
+    UNION ALL
+    SELECT 'Geography', 0.170813937090975
+    UNION ALL
+    SELECT 'Age x Tenure', 0.304858922122436
+    UNION ALL
+    SELECT 'Geo x Age', 0.353894119222383
+
+),
+
+max_spread AS (
+    SELECT MAX(spread) AS max_spread FROM driver_spreads
+)
+
+SELECT
+    d.driver,
+    d.spread,
+    d.spread / m.max_spread AS relative_to_strongest,
+    RANK() OVER (ORDER BY d.spread DESC) AS driver_rank
+FROM driver_spreads d
+CROSS JOIN max_spread m;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT * FROM report_driver_ranking;
+------------------------------------------------------------------------------------*/
+
+/*
+| Rank | Driver           | Relative Strength |
+| ---- | ---------------- | ----------------- |
+| 1    | Geo × Age        | 1.00              |
+| 2    | Age × Tenure     | 0.86              |
+| 3    | Geography        | 0.48              |
+| 4    | Age              | 0.46              |
+| 5    | Tenure           | 0.15              |
+
+
+Pricing adherence is primarily driven by interaction effects rather
+than isolated demographic factors. The strongest dispersion occurs
+at the intersection of age and geography, followed closely by lifecycle
+interaction (age x tenure) effects. Standalone tenure impact is minimal
+*/

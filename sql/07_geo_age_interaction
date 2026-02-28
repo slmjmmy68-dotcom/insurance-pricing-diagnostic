@@ -1,0 +1,32 @@
+-- ==========================================
+-- REPORTING TABLE: AGE X GEOGRAPHY INTERACTION REPORT
+-- ==========================================
+
+--- Is the geographic effect independent of age?
+
+DROP TABLE IF EXISTS report_geo_age_interaction;
+
+CREATE TABLE report_geo_age_interaction AS
+
+SELECT
+    t.county,
+    f.age_band,
+    COUNT(f.policy_id) AS policy_count,
+    AVG(f.model_pricing_ratio) AS avg_model_ratio,
+    SUM(CASE WHEN f.model_pricing_ratio > 1 THEN 1 ELSE 0 END) * 1.0
+        / COUNT(f.policy_id) AS pct_underpriced
+FROM fact_premium f
+JOIN dim_territory t
+    ON f.territory_code = t.territory_code
+WHERE f.stable_pricing_flag = 1
+GROUP BY t.county, f.age_band;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT *
+FROM report_geo_age_interaction
+WHERE county IN ('DORCHESTER', 'GARRETT')
+ORDER BY county, age_band;
+------------------------------------------------------------------------------------*/
+
+--- Geography independently driving pricing adherence.

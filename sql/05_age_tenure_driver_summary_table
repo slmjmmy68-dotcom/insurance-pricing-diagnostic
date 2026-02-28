@@ -1,0 +1,173 @@
+-- ==========================================
+-- REPORTING TABLE: DRIVER IMPORTANCE
+-- ==========================================
+
+/*
+We’re going to build a driver importance summary table that:
+    Quantifies dispersion
+    Compares drivers side-by-side
+    Is small and BI-friendly
+    Supports an executive slide immediately
+
+For each driver type, we want:
+    driver_name
+    max_avg_ratio
+    min_avg_ratio
+    spread
+    relative_to_age_spread
+*/
+
+DROP TABLE IF EXISTS report_driver_importance;
+
+CREATE TABLE report_driver_importance AS
+
+WITH age_stats AS (
+    SELECT
+        'Age' AS driver,
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT
+            age_band,
+            AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY age_band
+    )
+),
+
+tenure_stats AS (
+    SELECT
+        'Tenure' AS driver,
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT
+            tenure_band,
+            AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY tenure_band
+    )
+),
+
+interaction_stats AS (
+    SELECT
+        'Age x Tenure' AS driver,
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT
+            age_band,
+            tenure_band,
+            AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY age_band, tenure_band
+    )
+)
+
+SELECT * FROM age_stats
+UNION ALL
+SELECT * FROM tenure_stats
+UNION ALL
+SELECT * FROM interaction_stats;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT * FROM report_driver_importance;
+------------------------------------------------------------------------------------*/
+
+
+-- ==========================================
+-- REPORTING TABLE W RELATIVE SPREADS: DRIVER IMPORTANCE
+-- ==========================================
+
+
+DROP TABLE IF EXISTS report_driver_importance;
+
+CREATE TABLE report_driver_importance AS
+
+WITH base_stats AS (
+
+    -- Age
+    SELECT
+        'Age' AS driver,
+        MAX(avg_model_ratio) AS max_ratio,
+        MIN(avg_model_ratio) AS min_ratio,
+        MAX(avg_model_ratio) - MIN(avg_model_ratio) AS spread
+    FROM (
+        SELECT age_band, AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY age_band
+    )
+
+    UNION ALL
+
+    -- Tenure
+    SELECT
+        'Tenure' AS driver,
+        MAX(avg_model_ratio),
+        MIN(avg_model_ratio),
+        MAX(avg_model_ratio) - MIN(avg_model_ratio)
+    FROM (
+        SELECT tenure_band, AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY tenure_band
+    )
+
+    UNION ALL
+
+    -- Interaction
+    SELECT
+        'Age x Tenure' AS driver,
+        MAX(avg_model_ratio),
+        MIN(avg_model_ratio),
+        MAX(avg_model_ratio) - MIN(avg_model_ratio)
+    FROM (
+        SELECT age_band, tenure_band,
+               AVG(model_pricing_ratio) AS avg_model_ratio
+        FROM fact_premium
+        WHERE stable_pricing_flag = 1
+        GROUP BY age_band, tenure_band
+    )
+)
+
+SELECT
+    driver,
+    max_ratio,
+    min_ratio,
+    spread,
+    spread / (
+        SELECT spread FROM base_stats WHERE driver = 'Age'
+    ) AS spread_relative_to_age,
+    spread / (
+        SELECT spread FROM base_stats WHERE driver = 'Tenure'
+    ) AS spread_relative_to_tenure
+FROM base_stats;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT * FROM report_driver_importance;
+------------------------------------------------------------------------------------*/
+
+/*
+| Driver       | Spread | Relative to Age | Relative to Tenure |
+| ------------ | ------ | --------------- | ------------------ |
+| Age          | 0.162  | 1.00            | 3.11×              |
+| Tenure       | 0.052  | 0.32×           | 1.00               |
+| Age × Tenure | 0.305  | 1.88×           | 5.85×              |
+
+Age is ~3x stronger than tenure
+Age dispersion is 3.11× tenure dispersion.
+
+Interaction nearly doubles age effect
+Age × Tenure dispersion is 1.88× age dispersion.
+
+Interaction is ~6x stronger than tenure alone
+Tenure barely matters unless paired with age.

@@ -1,0 +1,13 @@
+-- ==========================================
+-- SEGMENT ANALYSIS
+-- =========================================
+
+
+SELECT
+    age_band,
+    tenure_band,
+    COUNT(*) AS policy_count
+FROM fact_premium
+WHERE stable_pricing_flag = 1
+GROUP BY age_band, tenure_band
+ORDER BY policy_count ASC;

@@ -1,0 +1,28 @@
+-- ==========================================
+-- REPORTING TABLE: SEGMENT ADHERENCE
+-- ==========================================
+-- Creating the segment adherence reporting table
+
+
+DROP TABLE IF EXISTS report_segment_adherence;
+
+CREATE TABLE report_segment_adherence AS
+
+WITH segment_base AS (
+    SELECT
+        age_band,
+        tenure_band,
+        COUNT(policy_id) AS policy_count,
+        AVG(model_pricing_ratio) AS avg_model_ratio,
+        AVG(renewal_change) AS avg_renewal_change,
+        SUM(CASE WHEN model_pricing_ratio > 1 THEN 1 ELSE 0 END) * 1.0 
+            / COUNT(policy_id) AS pct_underpriced,
+        SUM(CASE WHEN model_pricing_ratio < 1 THEN 1 ELSE 0 END) * 1.0 
+            / COUNT(policy_id) AS pct_overpricedd
+    FROM fact_premium
+    WHERE stable_pricing_flag = 1
+    GROUP BY age_band, tenure_band
+)
+SELECT *
+FROM segment_base;
+-- WHERE policy_count >= 100;

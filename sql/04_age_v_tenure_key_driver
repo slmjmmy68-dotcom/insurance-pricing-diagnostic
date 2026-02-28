@@ -1,0 +1,24 @@
+-- ==========================================
+-- ASSESSING DOMINANT DRIVER OF MODEL ADHERENCE
+-- ==========================================
+
+---------- Aggregate by Age --------------------------------
+SELECT
+    age_band,
+    COUNT(*) AS policy_count,
+    AVG(model_pricing_ratio) AS avg_model_ratio
+FROM fact_premium
+WHERE stable_pricing_flag = 1
+GROUP BY age_band
+ORDER BY avg_model_ratio DESC;
+
+
+--------------- Aggregate by Tenure --------------------------------
+SELECT
+    tenure_band,
+    COUNT(*) AS policy_count,
+    AVG(model_pricing_ratio) AS avg_model_ratio
+FROM fact_premium
+WHERE stable_pricing_flag = 1
+GROUP BY tenure_band
+ORDER BY avg_model_ratio DESC;

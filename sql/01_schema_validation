@@ -1,0 +1,7 @@
+-- ==========================================
+-- SCHEMA VALIDATION
+-- ==========================================
+
+SELECT COUNT(*) FROM fact_premium;
+SELECT COUNT(*) FROM dim_territory;
+SELECT COUNT(*) FROM dim_rating_definition;

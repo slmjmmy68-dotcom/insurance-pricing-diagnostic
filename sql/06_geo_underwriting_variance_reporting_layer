@@ -1,0 +1,31 @@
+-- ==========================================
+-- REPORTING TABLE: GEOGRAPHIC VARIATION
+-- ==========================================
+
+--- Where does pricing deviate most from model indication?
+
+DROP TABLE IF EXISTS report_geo_variation;
+
+CREATE TABLE report_geo_variation AS
+
+SELECT
+    t.county,
+    COUNT(f.policy_id) AS policy_count,
+    AVG(f.model_pricing_ratio) AS avg_model_ratio,
+    AVG(f.renewal_change) AS avg_renewal_change,
+    SUM(CASE WHEN f.model_pricing_ratio > 1 THEN 1 ELSE 0 END) * 1.0
+        / COUNT(f.policy_id) AS pct_underpriced,
+    SUM(CASE WHEN f.model_pricing_ratio < 1 THEN 1 ELSE 0 END) * 1.0
+        / COUNT(f.policy_id) AS pct_overpriced
+FROM fact_premium f
+JOIN dim_territory t
+    ON f.territory_code = t.territory_code
+WHERE f.stable_pricing_flag = 1
+GROUP BY t.county;
+
+/*-------------------------------------------------------------------------------------
+-- view the table
+SELECT *
+FROM report_geo_variation
+ORDER BY avg_model_ratio DESC;
+------------------------------------------------------------------------------------*/
