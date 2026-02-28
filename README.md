@@ -117,15 +117,3 @@ Repository Structure
     ├── README.md
     ├── requirements.txt
     └── .gitignore
-
-Data Model
-
-    Explain fact table + dimensions.
-
-Reporting Outputs
-
-    Include screenshots.
-
-Future Extensions
-
-    Link to strategic recommendations page.
