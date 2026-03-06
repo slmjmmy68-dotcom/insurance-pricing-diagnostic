@@ -146,6 +146,41 @@ This prepares the analytical dataset used by the SQL queries and Power BI dashbo
 
 ---
 
-# Author
+# Architecture
 
-Independent analytics project exploring pricing model adherence diagnostics in insurance portfolios.
+This project follows a simplified analytical pipeline that transforms raw policy data into structured pricing diagnostics and interactive reporting.
+
+The workflow combines **Python-based ETL**, **SQL analytical modeling**, and **Power BI visualization** to evaluate pricing model adherence across geographic and lifecycle segments.
+
+Raw Insurance Data (CSV)
+        │
+        ▼
+Python ETL Pipeline (pandas)
+- Data ingestion
+- Column standardization
+- Data quality validation
+        │
+        ▼
+Analytical Data Model
+Fact Table:
+    fact_premium
+        │
+        ├── Aggregation by Geography
+        │       report_geo_variation
+        │
+        └── Aggregation by Geography × Age
+                report_geo_age_interaction
+        │
+        ▼
+SQL Analytical Layer
+- Geographic pricing variation
+- Lifecycle pricing dynamics
+- Interaction driver diagnostics
+- Portfolio pricing dispersion
+        │
+        ▼
+Power BI Dashboard
+- Executive summary metrics
+- Lifecycle interaction heatmaps
+- Geographic pricing deviation maps
+- Strategic diagnostic insights
