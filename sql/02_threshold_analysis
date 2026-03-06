@@ -1,7 +1,7 @@
 -- ==========================================
 -- SEGMENT ANALYSIS
 -- =========================================
-
+-- Validating the policy count at both groups to verify if the counts are in an acceptable range
 
 SELECT
     age_band,

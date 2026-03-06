@@ -1,8 +1,6 @@
 -- ==========================================
--- REPORTING TABLE: AGE X GEOGRAPHY INTERACTION REPORT
+-- REPORTING TABLE W AGE X GEOGRAPHY INTERACTION REPORT
 -- ==========================================
-
---- Is the geographic effect independent of age?
 
 DROP TABLE IF EXISTS report_geo_age_interaction;
 
@@ -28,5 +26,3 @@ FROM report_geo_age_interaction
 WHERE county IN ('DORCHESTER', 'GARRETT')
 ORDER BY county, age_band;
 ------------------------------------------------------------------------------------*/
-
---- Geography independently driving pricing adherence.

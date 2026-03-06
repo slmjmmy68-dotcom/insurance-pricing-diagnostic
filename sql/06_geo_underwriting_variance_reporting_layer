@@ -1,8 +1,6 @@
 -- ==========================================
--- REPORTING TABLE: GEOGRAPHIC VARIATION
+-- REPORTING TABLE W GEOGRAPHIC VARIATION OF MODEL ADHERANCE
 -- ==========================================
-
---- Where does pricing deviate most from model indication?
 
 DROP TABLE IF EXISTS report_geo_variation;
 

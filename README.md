@@ -1,119 +1,151 @@
-Insurance Pricing Model Adherence Diagnostic
+# Insurance Premium Pricing Diagnostic
 
-Executive Summary
+An end-to-end analytics project investigating structural pricing dispersion in an auto insurance portfolio.
 
-    This project evaluates structural pricing dispersion within a personal auto insurance portfolio using model-to-selected premium ratios.
+The analysis identifies lifecycle and geographic interaction effects driving systematic deviation from modeled pricing indications.
 
-    The analysis identifies lifecycle and geographic interaction effects driving systematic deviation from technical indication, revealing evidence of calibration drift rather than isolated pricing variance.
+---
 
-Business Problem
+## Executive Dashboard
 
-    Insurance carriers rely on pricing models to align premiums with risk.
-    When selected premiums diverge from modeled indication in a structured way, margin leakage and cross-subsidization can occur across customer segments.
+![Executive Summary](outputs/screenshots/executive_summary.png)
 
-    This diagnostic addresses:
-    - Is pricing deviation random or structural?
-    - Which segments exhibit systematic underpricing or overpricing?
-    - Do interaction effects (e.g., Geography × Age) materially amplify dispersion?
-    - Where should recalibration and monitoring focus?
+The dashboard highlights:
 
-Key Findings
+• Portfolio pricing trends vs model indication  
+• Interaction effects across geography and lifecycle  
+• Segment-level dispersion drivers  
+• Strategic calibration insights
 
-    - Portfolio pricing trends 7% below modeled indication
-    - 53% of policies are priced below technical indication
-    - Geo × Age interaction effects exceed standalone driver strength
-    - Segment dispersion exceeds 35%, indicating structural calibration drift
-    - Older short-tenure segments show systematic underpricing
-    - Younger long-tenure segments appear to subsidize deviation
+---
 
-    Observed pricing variance clusters structurally across lifecycle and geographic dimensions.
+## Lifecycle Effects
 
-Analytical Approach
+![Lifecycle Effects](outputs/screenshots/lifecycle_effects.png)
 
-    I. Data Engineering
-        - Cleaned and transformed policy-level data using Python (Pandas)
-        - Engineered lifecycle segmentation:
-            > Age bands
-            > Tenure bands
-        - Derived model adherence metrics:
-            > Model pricing ratio
-            > Renewal change
-            > Indicated-to-current ratio
-        - Created stable pricing flags to isolate valid comparisons
-        
-    II. Dimensional Modeling
+Pricing deviation increases across age bands and is amplified by tenure effects, suggesting lifecycle calibration drift.
 
-        Built a star schema and pushed to SQLite:
+---
 
-            Fact Table
-                fact_premium
-                    Existing Policy-level pricing metrics
-                    Derived model adherence metrics
-                    Model adherence flags
-                    Defined Segment attributes
+## Geographic Pricing Behavior
 
-            Dimension Tables
-                dim_territory
-                dim_rating_definition
+![Geographic Effects](outputs/screenshots/geographic_effects.png)
 
-        This supports scalable aggregation and reporting logic.
+County-level pricing behavior reveals regional clustering and localized pricing divergence.
 
-    III. Interaction Analysis
+---
 
-        Quantified dispersion strength across:
-            Age
-            Tenure
-            Geography
-            Age × Tenure
-            Geo × Age
+## Geo × Age Interaction Effects
 
-        Dispersion driver strength measured using max-min ratio spread across segments.
+![Geo Age Interaction](outputs/screenshots/geo_age_interaction.png)
 
-        Interaction effects materially exceeded standalone drivers.
+Interaction dispersion materially exceeds standalone driver strength, indicating structural segmentation imbalance.
 
-    IV. Executive Reporting Layer
+---
 
-        Developed an executive-ready Power BI diagnostic including:
-            Portfolio-level KPI summary
-            Lifecycle dispersion heatmaps
-            Geographic deviation analysis
-            Interaction strength ranking
-            Strategic recommendations & monitoring framework
+# Data Model
 
-        The reporting layer translates analytical findings into actionable business insights.
+The analysis uses a simplified dimensional model designed for pricing diagnostics.
 
-Strategic Extensions
+![Data Model](outputs/diagrams/data_model.png)
 
-    Future enhancements could include:
-        Loss ratio integration by segment (Geo × Age × Tenure)
-        Risk alignment validation against claim frequency/severity
-        Competitor pricing benchmarks
-        Policy lapse behavior analysis
-        Model adherence monitoring dashboards
-        Alert-based calibration triggers
+Key tables:
 
-Technical Stack
-    Python (Pandas) – ETL & feature engineering
-    SQLite (Star schema) – Reporting layer (Aggregation & interaction analysis)
-    Power BI – Executive Visualization dashboard
-    Git – Version control
+**fact_premium**
 
-Repository Structure
-    insurance-pricing-diagnostic/
-    │
-    ├── data/
-    │   ├── raw/
-    │   ├── processed_to_load/
-    │
-    ├── notebooks/
-    │
-    ├── sql/
-    │
-    ├── powerbi/
-    │
-    ├── outputs/
-    │   ├── screenshots/
-    │
-    ├── README.md
-    ├── requirements.txt
-    └── .gitignore
+• policy_id  
+• county  
+• age_band  
+• tenure_band  
+• model_pricing_ratio  
+
+**report_geo_variation**
+
+Aggregated geographic pricing diagnostics.
+
+**report_geo_age_interaction**
+
+Segment-level interaction effects across geography and lifecycle segments.
+
+---
+
+# Pipeline Overview
+Raw Insurance Data
+│
+▼
+Python ETL Pipeline
+(pandas transformation)
+│
+▼
+SQLite Analytical Database
+│
+▼
+SQL Analytical Queries
+│
+▼
+Power BI Dashboard
+
+---
+
+# Key Insights
+
+• Interaction effects dominate pricing dispersion  
+• Older short-tenure segments show systematic underpricing  
+• Younger long-tenure segments trend below model indication  
+• Geographic clustering reinforces lifecycle imbalance  
+
+Observed Geo × Age dispersion exceeds **35%**, suggesting structural calibration drift.
+
+---
+
+# Tech Stack
+
+Python (pandas, numpy)  
+SQLite  
+SQL  
+Power BI  
+Git / GitHub
+
+---
+
+# Project Structure
+insurance-pricing-diagnostic
+│
+├── data
+│ ├── raw
+│ └── processed
+│
+├── notebooks
+│ └── insurance_data_ETL.py
+│
+├── sql
+│ └── analysis_queries.sql
+│
+├── powerbi
+│ └── pricing_dashboard.pbix
+│
+├── outputs
+│ ├── screenshots
+│ └── diagrams
+│
+├── run_pipeline.py
+└── README.md
+
+---
+
+# Reproducing the Analysis
+
+Install dependencies:
+pip install -r requirements.txt
+
+Run the ETL pipeline:
+insurance_data_ETL.py
+
+
+This prepares the analytical dataset used by the SQL queries and Power BI dashboard.
+
+---
+
+# Author
+
+Independent analytics project exploring pricing model adherence diagnostics in insurance portfolios.

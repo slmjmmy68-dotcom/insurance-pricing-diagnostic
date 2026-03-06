@@ -1,11 +1,6 @@
 -- ==========================================
--- REPORTING TABLE: CALCULATE GEOGRAPHY DRIVER STRENGTH
+-- REPORTING TABLE CALCULATING GEOGRAPHY DRIVER STRENGTH
 -- ==========================================
-
-/*
-Calculate Geographic spread:
-max(avg_model_ratio by county) − min(avg_model_ratio by county)
-*/
 
 DROP TABLE IF EXISTS report_geo_driver_strength;
 

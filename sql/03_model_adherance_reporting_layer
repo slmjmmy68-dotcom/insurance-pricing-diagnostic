@@ -1,8 +1,6 @@
 -- ==========================================
 -- REPORTING TABLE: SEGMENT ADHERENCE
 -- ==========================================
--- Creating the segment adherence reporting table
-
 
 DROP TABLE IF EXISTS report_segment_adherence;
 

@@ -1,6 +1,7 @@
 -- ==========================================
 -- SCHEMA VALIDATION
 -- ==========================================
+-- A quick check to see if the DB was loaded correctly
 
 SELECT COUNT(*) FROM fact_premium;
 SELECT COUNT(*) FROM dim_territory;

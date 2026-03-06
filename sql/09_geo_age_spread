@@ -1,5 +1,5 @@
 -- ==========================================
--- GEO x AGE DRIVER STRENGTH
+-- GEO x AGE DRIVER STRENGTH REPORT
 -- ==========================================
 
 WITH geo_age_stats AS (

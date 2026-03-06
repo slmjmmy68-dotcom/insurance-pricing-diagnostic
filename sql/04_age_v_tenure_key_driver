@@ -1,8 +1,8 @@
 -- ==========================================
--- ASSESSING DOMINANT DRIVER OF MODEL ADHERENCE
+-- ASSESSING AGE V TENURE VARAINCE
 -- ==========================================
 
----------- Aggregate by Age --------------------------------
+---------- Adherance Aggregate by Age --------------------------------
 SELECT
     age_band,
     COUNT(*) AS policy_count,
@@ -13,7 +13,7 @@ GROUP BY age_band
 ORDER BY avg_model_ratio DESC;
 
 
---------------- Aggregate by Tenure --------------------------------
+--------------- Adherance Aggregate by Tenure --------------------------------
 SELECT
     tenure_band,
     COUNT(*) AS policy_count,
